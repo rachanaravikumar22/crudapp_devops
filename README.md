@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # README
 
 This README would normally document whatever steps are necessary to get the
@@ -22,3 +23,7 @@ Things you may want to cover:
 * Deployment instructions
 
 * ...
+=======
+# crudapp_devops
+Application
+>>>>>>> 69b66660a730cc36294b2e29dc60acd99c581b21
