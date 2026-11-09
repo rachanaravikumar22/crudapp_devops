@@ -21,4 +21,4 @@ production:
   database: task_manager_production
   username: <%= ENV.fetch("DATABASE_USERNAME", "railsuser") %>
   password: <%= ENV.fetch("DATABASE_PASSWORD", "RailsPass123!") %>
-  host: <%= ENV.fetch("DATABASE_HOST", "127.0.0.1") %>
+  host: <%= ENV.fetch("DATABASE_HOST", "mysql") %>
