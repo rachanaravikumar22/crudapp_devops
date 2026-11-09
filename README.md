@@ -1,29 +1,57 @@
-<<<<<<< HEAD
-# README
+# Task Manager — Rails CRUD Application
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Overview
+This project is a Ruby on Rails rewrite of the original Task Manager application. It provides functionality to create, view, search, edit, and delete tasks using a MySQL database.
 
-Things you may want to cover:
+## Technologies
+- Ruby on Rails
+- Ruby
+- MySQL
+- Puma
+- Docker
+- Docker Compose
+- Kubernetes
+- Minikube
 
-* Ruby version
+## Features
+- Create new tasks
+- View task history
+- Search tasks
+- Edit existing tasks
+- Delete tasks
+- Health-check endpoint at `/up`
 
-* System dependencies
+## Prerequisites
+- Ruby and Bundler
+- MySQL
+- Docker Desktop
+- kubectl and Minikube for Kubernetes deployment
 
-* Configuration
+## Run Locally
+1. Install the project dependencies:
 
-* Database creation
+   ```bash
+   bundle install
+   ```
 
-* Database initialization
+2. Configure the database in `config/database.yml`.
 
-* How to run the test suite
+3. Create and migrate the database:
 
-* Services (job queues, cache servers, search engines, etc.)
+   ```bash
+   bin/rails db:create db:migrate
+   ```
 
-* Deployment instructions
+4. Start the Rails server:
 
-* ...
-=======
-# crudapp_devops
-Application
->>>>>>> 69b66660a730cc36294b2e29dc60acd99c581b21
+   ```bash
+   bin/rails server
+   ```
+
+5. Open `http://localhost:3000`.
+
+## Project Status
+The basic Rails CRUD application and MySQL database setup are implemented. Docker image building, Compose configuration, Kubernetes deployment, and load testing are still being completed.
+
+## Author
+Rachana Ravikumar
