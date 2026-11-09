@@ -1,0 +1,57 @@
+
+<h1>Task Manager</h1>
+
+<% if notice.present? %>
+  <p><%= notice %></p>
+<% end %>
+
+<h2>Create a task</h2>
+
+<%= form_with model: Task.new, url: tasks_path do |form| %>
+  <div>
+    <%= form.label :title %>
+    <%= form.text_field :title, required: true %>
+  </div>
+
+  <div>
+    <%= form.label :description %>
+    <%= form.text_area :description %>
+  </div>
+
+  <%= form.submit "Create Task" %>
+<% end %>
+
+<h2>Search tasks</h2>
+
+<%= form_with url: search_path, method: :get do |form| %>
+  <%= form.text_field :q, placeholder: "Search by title or description" %>
+  <%= form.submit "Search" %>
+<% end %>
+
+<h2>Task History</h2>
+
+<% unless session[:history_unlocked] %>
+  <p>Task history is locked.</p>
+
+  <%= button_to "Unlock History", history_unlock_path,
+      method: :post %>
+<% else %>
+  <% if @tasks.present? %>
+    <% @tasks.each do |task| %>
+      <article>
+        <h3><%= task.title %></h3>
+        <p><%= task.description %></p>
+        <p>Created: <%= task.created_at.strftime("%d %b %Y, %H:%M") %></p>
+
+        <%= link_to "Edit", edit_task_path(task) %>
+
+        <%= button_to "Delete", task_path(task),
+            method: :delete,
+            form: { data: { turbo_confirm: "Delete this task?" } } %>
+      </article>
+      <hr>
+    <% end %>
+  <% else %>
+    <p>No tasks found.</p>
+  <% end %>
+<% end %>
