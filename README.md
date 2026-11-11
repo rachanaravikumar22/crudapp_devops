@@ -1,97 +1,210 @@
-# Task Manager — Rails CRUD Application
+# Task Manager — DevOps and Kubernetes
 
 ## Overview
 
-This project is a Ruby on Rails rewrite of the original Task Manager application. It supports creating, viewing, searching, editing, and deleting tasks using a MySQL database.
+This project demonstrates the containerisation, deployment, monitoring, scaling, and performance testing of a Ruby on Rails Task Manager application.
 
-The project explores containerisation with Docker, service orchestration with Docker Compose, deployment on Kubernetes using Minikube, application health monitoring, horizontal pod autoscaling, and performance testing with k6.
+The application uses MySQL for persistent data storage. Docker and Docker Compose are used for containerisation, while Kubernetes with Minikube manages the application and database workloads. The project also includes health checks, Horizontal Pod Autoscaling (HPA), resource monitoring, and load testing with k6.
 
-## Technologies
+## Technology Stack
 
-- Ruby on Rails
-- Ruby
-- MySQL
-- Puma
-- Docker
-- Docker Compose
-- Kubernetes
-- Minikube
-- kubectl
-- k6
-
-## Features
-
-- Create, view, search, edit, and delete tasks
-- MySQL database integration
-- Application health-check endpoint at `/up`
-- Docker image and multi-container configuration
-- Kubernetes Deployment and Service
-- Readiness, liveness, and startup probes
-- Horizontal Pod Autoscaler configuration
-- k6-based load testing
+- **Application:** Ruby on Rails, Ruby, Puma
+- **Database:** MySQL
+- **Containerisation:** Docker, Docker Compose
+- **Orchestration:** Kubernetes, Minikube, kubectl
+- **Performance testing:** k6
+- **Configuration:** YAML, environment variables, Kubernetes Secrets
 
 ## Project Structure
 
-- `app/` — Rails application code
-- `bin/` — Application scripts
-- `config/` — Application and database configuration
-- `db/` — Database schema, migrations, and seeds
-- `k8/` — Kubernetes configuration files
-- `test/` — Application tests
-- `Dockerfile` — Application image definition
-- `compose.yaml` — Docker Compose configuration
-- `loadtest.js` — k6 performance test script
-- `README.md` — Project documentation
+```text
+task_manager/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── app/                    # Rails application
+├── bin/                    # Application scripts
+├── config/                 # Rails configuration
+├── db/                     # Database schema and migrations
+├── k8/                     # Kubernetes manifests
+│   ├── deployment.yaml
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── mysql.yaml
+│   └── service.yaml
+├── lib/                    # Supporting application code
+├── test/                   # Application tests
+├── Dockerfile              # Application container image
+├── compose.yaml            # Local multi-container setup
+├── loadtest.js             # k6 load-test script
+├── Gemfile
+├── Gemfile.lock
+└── README.md
+```
 
-## Deployment and Validation
+## Architecture
 
-The project contains a Dockerfile and a Compose configuration for the Rails application and MySQL database.
+The application runs in a Rails container and communicates with a MySQL database. Docker Compose defines the local container environment, while Kubernetes Deployments and Services manage the application and database in Minikube.
 
-The Kubernetes configuration includes an application Deployment, a Service, MySQL resources, and an HPA configuration. The application health endpoint `/up` is used by the configured health probes.
+The Kubernetes application Deployment includes startup, readiness, and liveness probes targeting the `/up` endpoint. A Horizontal Pod Autoscaler monitors CPU utilisation and can adjust the number of application replicas.
 
-Successful operation should be demonstrated using actual Docker and Minikube verification results in the assignment report.
+## Running with Docker Compose
 
-## Performance Testing
+Build and start the application and database:
 
-The k6 test script specifies 500 virtual users for 60 seconds. The test targets the application through the local port-forwarded address.
+```bash
+docker compose up --build -d
+```
 
-### Observed results
+Check the running containers:
 
-| Metric | Result |
+```bash
+docker compose ps
+```
+
+View application logs:
+
+```bash
+docker compose logs -f app
+```
+
+Stop the services:
+
+```bash
+docker compose down
+```
+
+Database persistence depends on the volume configuration in `compose.yaml`.
+
+## Kubernetes Deployment
+
+The Kubernetes manifests are located in `k8/`.
+
+The application and database workloads are deployed separately. The application is exposed through `task-manager-service`, and MySQL is available through the `mysql` Service.
+
+Useful verification commands:
+
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl get services
+kubectl get hpa
+```
+
+To inspect autoscaling configuration and status:
+
+```bash
+kubectl describe hpa task-manager-hpa
+```
+
+To inspect resource usage:
+
+```bash
+kubectl top pods
+```
+
+The application health endpoint was tested through a local port-forward:
+
+```bash
+kubectl port-forward service/task-manager-service 3001:3000
+```
+
+In another terminal:
+
+```powershell
+Invoke-WebRequest http://localhost:3001/up -UseBasicParsing
+```
+
+**Observed result:** The health endpoint returned HTTP `200 OK`.
+
+## Horizontal Pod Autoscaling
+
+The HPA manifest configures CPU-based scaling with a target utilisation of 70% and a maximum of three application replicas.
+
+During load testing, the application Deployment scaled from one replica to three replicas. Subsequent observations showed the replica count returning to a lower level as the workload subsided.
+
+The HPA status reported CPU utilisation of `0% / 70%` in a later idle-state observation. Scaling decisions depend on measured CPU utilisation relative to the resource requests configured for the application containers.
+
+## Performance Testing with k6
+
+The `loadtest.js` script configures 500 virtual users for 60 seconds. It sends HTTP GET requests to the application and checks whether responses return HTTP 200.
+
+The configured thresholds are:
+
+- 95th-percentile response time below 2,000 ms
+- Failed HTTP request rate below 5%
+
+Run the test while the application is reachable at `http://localhost:3001/`:
+
+```bash
+k6 run loadtest.js
+```
+
+### Observed Load-Test Results
+
+| Metric | Observed result |
 |---|---:|
-| Virtual users configured | 500 |
-| Test duration | 60 seconds |
-| Total requests | Approximately 19,700 |
-| Throughput | Approximately 321 requests/second |
-| Average response time | 1.53 seconds |
-| 95th percentile response time | 2.46 seconds |
-| Failed request rate | 1.83% |
+| Configured maximum virtual users | 500 |
+| Test duration | Approximately 60 seconds |
+| Total checks | 20,800 |
+| Successful checks | 20,544 (98.76%) |
+| Failed checks | 256 (1.23%) |
+| Throughput | Approximately 338.74 requests/second |
+| Average response time | 1.45 seconds |
+| 95th-percentile response time | 1.58 seconds |
+| Maximum response time | 4.38 seconds |
 
-### Analysis
+Both configured k6 thresholds passed in this recorded run:
 
-The test generated approximately 19,700 requests, with an average response time of 1.53 seconds and a failed request rate of 1.83%.
+- **Response time:** p95 of 1.58 seconds was below the 2-second target.
+- **Failed request rate:** 1.23% was below the 5% target.
 
-The 95th percentile response time was 2.46 seconds, exceeding the configured target of less than 2 seconds. Therefore, the latency threshold was not met, although the configured error-rate threshold of less than 5% was met.
+These results describe the recorded test run and should not be interpreted as a guarantee of performance under every workload. The test also reported a maximum response time of 4.38 seconds, showing that some individual requests took longer than the average.
 
-These results provide a baseline for investigating response-time performance under concurrent load.
+## Resource Monitoring
 
-### Resource Usage and Autoscaling
+Pod resource usage was captured using `kubectl top pods` during the load test.
 
-CPU and memory usage should be recorded for each application pod and the MySQL pod while the load test is running. The results should be used to discuss whether the system appears CPU-bound or memory-bound and how the Puma thread configuration relates to performance.
+| Workload | Observed CPU | Observed memory |
+|---|---:|---:|
+| Rails application pod | 558m | 141 Mi |
+| MySQL pod | 7m | 464 Mi |
 
-The HPA configuration targets average CPU utilisation of 70%, with a minimum of 1 and maximum of 3 replicas. Actual scaling behaviour should be described using the observed replica counts and HPA metrics.
+The Rails application pod showed substantially higher CPU usage than the MySQL pod in this snapshot. The MySQL pod showed higher memory usage.
 
-### Fault Tolerance
+These are point-in-time measurements, not averages across the entire test. A complete assessment of CPU or memory bottlenecks would require measurements collected throughout the load test. Puma thread configuration and application/database behaviour should also be considered when interpreting performance.
 
-Document the simulated pod failure, the Kubernetes recovery behaviour, and the pod restart counts before and after the test. Include the actual verification output in the assignment report.
+## Fault-Tolerance Test
+
+A simulated application-container failure was triggered by sending `SIGTERM` to the main process of a running Rails pod.
+
+The observed sequence was:
+
+1. The selected pod temporarily became unready.
+2. Its restart count increased from 0 to 1.
+3. The same pod returned to `1/1 Running` and became ready again.
+
+This demonstrates Kubernetes restarting the terminated container and restoring application-pod readiness. It does not, by itself, establish database-failure recovery or application availability during every type of failure.
+
+## Validation Summary
+
+The recorded checks demonstrate the following:
+
+- The Kubernetes application and database workloads were running.
+- The Rails health endpoint returned HTTP 200.
+- The HPA responded to workload changes and reached three application replicas during load testing.
+- The k6 run passed both configured performance thresholds.
+- Resource usage was captured during testing.
+- A simulated container termination resulted in a restart and recovery to a ready state.
 
 ## Limitations and Future Improvements
 
-- Investigate why the 95th percentile response time exceeded the target.
-- Collect CPU and memory metrics during the load test.
-- Evaluate the HPA behaviour under sustained load.
-- Document the observed recovery behaviour after a simulated pod failure.
-- Record assumptions and configuration decisions in the assignment report.
+- Collect CPU and memory measurements throughout the full load test.
+- Investigate the failed requests and occasional high response times.
+- Validate scaling behaviour over repeated runs.
+- Test recovery from additional failure scenarios, including database unavailability.
+- Ensure that credentials are managed securely and that example configuration does not expose production secrets.
+- Document the test environment, assumptions, and evidence alongside the final assignment report.
 
 ## Author
 
